@@ -17,7 +17,14 @@ pi install git:git@github.com:yinziyang/pi-statusline.git
 ```
 
 需要 pi 0.87.0 或更高版本。
-装好后新开一个 pi 会话即可生效；只在交互界面里生效，`pi -p` 与 RPC 模式不受影响。
+安装后新开一个 pi 会话，启动信息的 Extensions 列表里会出现 `yinziyang/pi-statusline:statusline`。
+只在交互界面里生效，`pi -p` 与 RPC 模式不受影响。
+
+- MCP 那一段需要装 [pi-mcp-adapter](https://www.npmjs.com/package/pi-mcp-adapter)，没装时不显示，其余照常。
+- 更新到最新提交：`pi update --extensions`。
+- 只对当前项目生效：加 `-l`，写入项目的 `.pi/settings.json`。
+- 临时试用、不写入设置：`pi -e git:git@github.com:yinziyang/pi-statusline.git`。
+- 卸载：`pi remove git:git@github.com:yinziyang/pi-statusline.git`。
 
 ## 各段的含义
 
