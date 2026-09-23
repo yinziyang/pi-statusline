@@ -13,7 +13,7 @@
 ## 安装
 
 ```bash
-pi install git:git@github.com:yinziyang/pi-statusline.git
+pi install git:https://github.com/yinziyang/pi-statusline.git
 ```
 
 需要 pi 0.87.0 或更高版本。
@@ -23,8 +23,8 @@ pi install git:git@github.com:yinziyang/pi-statusline.git
 - MCP 那一段需要装 [pi-mcp-adapter](https://www.npmjs.com/package/pi-mcp-adapter)，没装时不显示，其余照常。
 - 更新到最新提交：`pi update --extensions`。
 - 只对当前项目生效：加 `-l`，写入项目的 `.pi/settings.json`。
-- 临时试用、不写入设置：`pi -e git:git@github.com:yinziyang/pi-statusline.git`。
-- 卸载：`pi remove git:git@github.com:yinziyang/pi-statusline.git`。
+- 临时试用、不写入设置：`pi -e git:https://github.com/yinziyang/pi-statusline.git`。
+- 卸载：`pi remove git:https://github.com/yinziyang/pi-statusline.git`。
 
 ## 各段的含义
 
