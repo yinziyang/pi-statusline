@@ -1,9 +1,9 @@
 # pi-statusline
 
-给 pi 换一套状态栏：输入框上方显示环境信息（目录、MCP、codex 额度），底栏显示本次会话（模型、上下文、token 与费用）。
+给 pi 换一套状态栏：输入框上方显示环境信息（目录、语言服务器、MCP、codex 额度），底栏显示本次会话（模型、上下文、token 与费用）。
 
 ```
-~/Project/piagent (main)                                  MCP 0/1 │ codex 周余 78% · 5d6h 后重置
+~/Project/piagent (main)                    LSP gopls ✓ │ MCP 0/1 │ codex 周余 78% · 5d6h 后重置
 ──────────────────────────────────────────────────────────────────────────────────────────────
   输入框
 ──────────────────────────────────────────────────────────────────────────────────────────────
@@ -21,6 +21,7 @@ pi install git:https://github.com/yinziyang/pi-statusline.git
 只在交互界面里生效，`pi -p` 与 RPC 模式不受影响。
 
 - MCP 那一段需要装 [pi-mcp-adapter](https://www.npmjs.com/package/pi-mcp-adapter)，没装时不显示，其余照常。
+- LSP 那一段需要装 [pi-lsp](https://github.com/yinziyang/pi-lsp)，没装时不显示，其余照常。
 - 更新到最新提交：`pi update --extensions`。
 - 只对当前项目生效：加 `-l`，写入项目的 `.pi/settings.json`。
 - 临时试用、不写入设置：`pi -e git:https://github.com/yinziyang/pi-statusline.git`。
@@ -33,6 +34,7 @@ pi install git:https://github.com/yinziyang/pi-statusline.git
 | 段 | 含义 |
 |---|---|
 | `~/Project/piagent (main)` | 当前目录与 git 分支；太长时从开头省略，保留项目名与分支 |
+| `LSP gopls ✓` | 语言服务器的状态，来自 [pi-lsp](https://github.com/yinziyang/pi-lsp)，颜色由 pi-lsp 决定：运行中绿色 `✓`，启动中黄色 `…`，出错红色 `✗`；还没有服务器在运行时是 `LSP idle` |
 | `MCP 0/1` | MCP 服务的已连接数/已启用数，来自 [pi-mcp-adapter](https://www.npmjs.com/package/pi-mcp-adapter)；服务按需连接，没用到时是 `0/N`，属正常 |
 | `codex 周余 78% · 5d6h 后重置` | codex 订阅额度的剩余百分比与重置倒计时，见下面「codex 额度」 |
 
@@ -76,13 +78,14 @@ pi install git:https://github.com/yinziyang/pi-statusline.git
 ## 窄屏
 
 - 底栏先省略费用，再省略 token 统计，再省略思考等级，仍放不下时截断。
-- 输入框上方先从开头省略目录，再省略「后重置」三个字，再省略 MCP；还放不下时只保留目录。
+- 输入框上方先从开头省略目录，再省略「后重置」三个字，再省略 LSP，再省略 MCP；还放不下时只保留目录。
 
 ## 与其他扩展的关系
 
 - pi 同一时间只能有一个扩展替换底栏，装了别的替换底栏的扩展时，后加载的那个生效。
 - [pi-goal](https://github.com/yinziyang/pi-goal) 的状态与 [pi-subagents](https://github.com/yinziyang/pi-subagents) 的面板画在输入框下方，不受影响。
 - pi-mcp-adapter 写入的完整状态文字不再出现在底栏，改成右上角的简写。
+- pi-lsp 写入的状态（键 `zz-pi-lsp`）不再单独占底栏第二行，改到右上角，保留它自己的颜色。
 
 ## 与 pi 自带底栏的差异
 

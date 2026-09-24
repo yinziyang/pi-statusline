@@ -1,7 +1,7 @@
 // 把各段数据排成行：输入框上方的一行与底栏。纯函数，不碰 pi 的会话对象，颜色经传入的主题取。
 //
 // 窄屏时按固定顺序省略次要信息，任何一行的可见宽度都不超过终端宽度：
-//   - 输入框上方：先从开头省略目录（保留末尾的项目名与分支）；仍放不下时先省略额度的「后重置」，再省略 MCP。
+//   - 输入框上方：先从开头省略目录（保留末尾的项目名与分支）；仍放不下时先省略额度的「后重置」，再省略 LSP 状态，再省略 MCP。
 //   - 底栏第 1 行：先省略费用，再省略 token 统计，再省略思考等级；仍放不下时截断并加「...」。
 
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
@@ -20,6 +20,8 @@ export interface TopData {
 	branch: string | null;
 	/** MCP 简写，例如 `MCP 0/1`；没配 MCP 时为 undefined。 */
 	mcp?: string;
+	/** pi-lsp 写入的状态，已带它自己的颜色，例如绿色的 `LSP gopls ✓`；没装 pi-lsp 时为 undefined。 */
+	lsp?: string;
 	/** codex 额度窗口；不是 codex 模型或没查到时为 undefined。 */
 	quota?: QuotaWindow[];
 	now: number;
@@ -67,7 +69,9 @@ export function renderTop(d: TopData, width: number, t: ThemeLike): string[] {
 			: "";
 	const join = (...parts: string[]) => parts.filter(Boolean).join(sep);
 	const mcp = d.mcp ? t.fg("dim", d.mcp) : "";
-	const candidates = [join(mcp, quota(true)), join(mcp, quota(false)), quota(false), ""];
+	// pi-lsp 的状态自带颜色（运行中的服务器是绿色），原样放在最前；窄屏时先于 MCP 省略。
+	const lsp = d.lsp ?? "";
+	const candidates = [join(lsp, mcp, quota(true)), join(lsp, mcp, quota(false)), join(mcp, quota(false)), quota(false), ""];
 	for (const right of candidates) {
 		if (!right) return [truncateToWidth(left(width), width, t.fg("dim", "..."))];
 		const room = width - visibleWidth(right) - MIN_GAP;

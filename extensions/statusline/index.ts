@@ -17,6 +17,12 @@ const WIDGET_KEY = "pi-statusline";
 /** pi-mcp-adapter 写状态用的键；它的状态改到右上角显示，底栏不再重复。 */
 const MCP_STATUS_KEY = "mcp";
 
+/**
+ * pi-lsp 写状态用的键，与 pi-lsp 约定；它的状态改到右上角显示，底栏不再重复。
+ * 没装 pi-lsp、非交互模式、或本机一个语言服务器都没有时，pi-lsp 不写这个键，右上角也就没有这一段，不需要另外探测。
+ */
+const LSP_STATUS_KEY = "zz-pi-lsp";
+
 /** 倒计时的刷新间隔；倒计时精确到分钟，一分钟刷一次就够。 */
 const TICK_MS = 60_000;
 
@@ -44,11 +50,14 @@ export default function statusline(pi: ExtensionAPI) {
 	};
 
 	const topData = (ctx: ExtensionContext, data: ReadonlyFooterDataProvider, now: number): TopData => {
-		const mcp = data.getExtensionStatuses().get(MCP_STATUS_KEY);
+		const statuses = data.getExtensionStatuses();
+		const mcp = statuses.get(MCP_STATUS_KEY);
+		const lsp = sanitizeStatus(statuses.get(LSP_STATUS_KEY) ?? "");
 		return {
 			cwd: formatCwd(ctx.sessionManager.getCwd(), process.env.HOME || process.env.USERPROFILE),
 			branch: data.getGitBranch(),
 			mcp: mcp ? mcpShort(mcp) : undefined,
+			lsp: lsp || undefined,
 			quota: poller?.current(ctx.model?.provider),
 			now,
 		};
@@ -58,7 +67,7 @@ export default function statusline(pi: ExtensionAPI) {
 		const model = ctx.model;
 		const usage = ctx.getContextUsage();
 		const statuses = [...data.getExtensionStatuses().entries()]
-			.filter(([key]) => key !== MCP_STATUS_KEY)
+			.filter(([key]) => key !== MCP_STATUS_KEY && key !== LSP_STATUS_KEY)
 			.sort(([a], [b]) => a.localeCompare(b))
 			.map(([, text]) => sanitizeStatus(text))
 			.filter(Boolean);

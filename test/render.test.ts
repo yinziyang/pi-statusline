@@ -77,6 +77,18 @@ test("窄屏：上方一行先从开头省略目录，保留项目名与分支�
 	for (const w of [160, 100, 76, 60, 40, 20, 8]) for (const l of renderTop(long, w, theme)) assert.ok(visibleWidth(l) <= w, `宽 ${w}：${stripVTControlCharacters(l)}`);
 });
 
+test("pi-lsp 的状态在右上角 MCP 前面，保留它自己的颜色；没有这个状态时不显示；窄屏时先于 MCP 省略", () => {
+	const lsp = `${theme.fg("dim", "LSP ")}${theme.fg("success", "gopls ✓")}`;
+	const wide = renderTop(top({ lsp }), 120, theme)[0];
+	assert.equal(plain([wide])[0].replace(/ {2,}/, " | "), "~/Project/piagent (main) | LSP gopls ✓ │ MCP 0/1 │ codex 周余 78% · 5d6h 后重置");
+	assert.equal(colorOf(wide, "gopls ✓"), "success", "运行中的服务器保持绿色");
+	assert.equal(visibleWidth(wide), 120);
+	assert.equal(plain(renderTop(top(), 120, theme))[0].includes("LSP"), false, "没装 pi-lsp 时没有这一段");
+	const at = (w: number) => plain(renderTop(top({ lsp }), w, theme))[0];
+	assert.ok(!at(60).includes("LSP") && at(60).includes("MCP"), `60 列时先省略 LSP、保留 MCP：${at(60)}`);
+	for (const w of [160, 100, 76, 60, 40, 20]) assert.ok(visibleWidth(renderTop(top({ lsp }), w, theme)[0]) <= w);
+});
+
 test("没有的信息整段不显示：没配 MCP、非 codex、没有 git 分支、非推理模型、零费用的 API key", () => {
 	assert.equal(plain(renderTop(top({ mcp: undefined, quota: undefined, branch: null }), 100, theme))[0], "~/Project/piagent");
 	assert.equal(plain(renderTop(top({ mcp: undefined }), 100, theme))[0].includes("│"), false, "只有额度时没有分隔符");
