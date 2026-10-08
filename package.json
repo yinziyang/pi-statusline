@@ -24,7 +24,7 @@
     "@earendil-works/pi-tui": { "optional": true }
   },
   "devDependencies": {
-    "@earendil-works/pi-coding-agent": "^0.87.0",
-    "@earendil-works/pi-tui": "^0.87.0"
+    "@earendil-works/pi-coding-agent": "^1.1.0",
+    "@earendil-works/pi-tui": "^1.1.0"
   }
 }

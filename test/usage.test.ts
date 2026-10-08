@@ -4,7 +4,7 @@ import { stripVTControlCharacters } from "node:util";
 // 直接导入 pi 自带底栏的实现做对照；这些文件不在包的公开导出里，只能按相对路径引用。
 import { FooterComponent, formatCwdForFooter, formatTokens as builtinFormatTokens } from "../node_modules/@earendil-works/pi-coding-agent/dist/modes/interactive/components/footer.js";
 import { initTheme } from "../node_modules/@earendil-works/pi-coding-agent/dist/modes/interactive/theme/theme.js";
-import { formatCwd, formatTokens, mcpShort, sessionStats } from "../extensions/statusline/usage.ts";
+import { enabledMcpServers, formatCwd, formatTokens, mcpShort, sessionStats } from "../extensions/statusline/usage.ts";
 
 const usage = (input: number, output: number, cacheRead: number, cacheWrite: number, cost: number) => ({ input, output, cacheRead, cacheWrite, cost: { total: cost } });
 
@@ -38,7 +38,7 @@ test("会话统计：↑↓RW、缓存命中率、费用与自带底栏的输出
 	const model = { id: "m", provider: "p", contextWindow: 272_000, reasoning: false };
 	const session = {
 		state: { model },
-		sessionManager: { getEntries: () => ENTRIES, getCwd: () => "/tmp", getSessionName: () => undefined },
+		sessionManager: { getEntries: () => ENTRIES, getEntryCount: () => ENTRIES.length, getSessionId: () => "s", getLeafId: () => null, getCwd: () => "/tmp", getSessionName: () => undefined },
 		getContextUsage: () => ({ tokens: 1000, contextWindow: 272_000, percent: 0.4 }),
 		modelRuntime: { isUsingSubscription: () => false },
 	};
@@ -57,11 +57,18 @@ test("没有助手消息时没有缓存命中率；最后一条的提示为 0 �
 	assert.equal(s.totals.output, 305);
 });
 
-test("MCP 简写：认得 pi-mcp-adapter 的完整与 compact 写法，认不出时返回整理过的原文", () => {
-	assert.equal(mcpShort("🔌 MCP: 1 server enabled"), "MCP 0/1");
-	assert.equal(mcpShort("MCP: 3 servers enabled (2 connected)"), "MCP 2/3");
-	assert.equal(mcpShort("MCP: 2 servers enabled (1 connected) (1 disabled)"), "MCP 1/2");
-	assert.equal(mcpShort("\x1b[38;5;110m🔌 MCP: 4 servers enabled (4 connected)\x1b[39m"), "MCP 4/4", "带颜色码");
-	assert.equal(mcpShort("MCP 1/2"), "MCP 1/2", "compact 原文");
-	assert.equal(mcpShort("MCP: connecting to probe...\n"), "MCP: connecting to probe...", "认不出时不猜数字");
+test("已启用的 MCP 服务：按 pi 的配置规则合并全局、项目与扩展注册的服务", () => {
+	const global = { mcpServers: { docs: { url: "https://x/mcp" }, "dev-radius": { command: "r" }, off: { command: "o", enabled: false }, probe: { command: "p" } } };
+	assert.deepEqual(enabledMcpServers(global, undefined, []), ["docs", "dev_radius", "probe"], "enabled 为 false 的不算，名字里的 - 归一化成 _");
+	const project = { mcpServers: { probe: { enabled: false }, off: { enabled: true }, local: { command: "l" }, orphan: { enabled: true }, docs: { command: "d", enabled: false } } };
+	assert.deepEqual(enabledMcpServers(global, project, []), ["dev_radius", "off", "local"], "覆盖条目只改 enabled，带 command 的条目整体替换，没有同名全局服务的覆盖条目不算");
+	assert.deepEqual(enabledMcpServers(global, undefined, ["dev_radius", "jira"]), ["docs", "dev_radius", "probe", "jira"], "扩展注册的服务与配置同名时以配置为准");
+	assert.deepEqual(enabledMcpServers(undefined, undefined, []), []);
+	for (const bad of ["oops", [1, 2], null, { mcpServers: [] }, { mcpServers: { x: "str" } }]) assert.deepEqual(enabledMcpServers(bad, bad, []), [], `结构不对时当作没有配置：${JSON.stringify(bad)}`);
+});
+
+test("MCP 简写：有工具命名空间的已启用服务算已连接；没有启用的服务时不显示", () => {
+	assert.equal(mcpShort([], ["mcp__probe"]), undefined);
+	assert.equal(mcpShort(["probe", "dev_radius", "docs"], [undefined, "mcp__probe", "mcp__probe", "mcp__dev_radius", "mcp__other", "lsp"]), "MCP 2/3", "同一服务的多个工具只算一次，未启用服务的工具不算");
+	assert.equal(mcpShort(["probe"], []), "MCP 0/1", "还没连上");
 });

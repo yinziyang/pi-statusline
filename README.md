@@ -3,7 +3,7 @@
 给 pi 换一套状态栏：输入框上方显示环境信息（目录、语言服务器、MCP、codex 额度），底栏显示本次会话（模型、上下文、token 与费用）。
 
 ```
-~/Project/piagent (main)                    LSP gopls ✓ │ MCP 0/1 │ codex 周余 78% · 5d6h 后重置
+~/Project/piagent (main)                    LSP gopls ✓ │ MCP 1/1 │ codex 周余 78% · 5d6h 后重置
 ──────────────────────────────────────────────────────────────────────────────────────────────
   输入框
 ──────────────────────────────────────────────────────────────────────────────────────────────
@@ -16,11 +16,12 @@
 pi install git:https://github.com/yinziyang/pi-statusline.git
 ```
 
-需要 pi 0.87.0 或更高版本。
+需要 pi 1.1.0 或更高版本，MCP 那一段读的是 pi 内置的 MCP。
 安装后新开一个 pi 会话，启动信息的 Extensions 列表里会出现 `yinziyang/pi-statusline:statusline`。
 只在交互界面里生效，`pi -p` 与 RPC 模式不受影响。
 
-- MCP 那一段需要装 [pi-mcp-adapter](https://www.npmjs.com/package/pi-mcp-adapter)，没装时不显示，其余照常。
+- MCP 那一段读 pi 内置 MCP 的配置与已连上的服务，不需要装 pi-mcp-adapter。
+  - 没有启用的服务、用 `--no-mcp` 关掉、或者被第三方 MCP 扩展接管时不显示，其余照常。
 - LSP 那一段需要装 [pi-lsp](https://github.com/yinziyang/pi-lsp)，没装时不显示，其余照常。
 - 更新到最新提交：`pi update --extensions`。
 - 只对当前项目生效：加 `-l`，写入项目的 `.pi/settings.json`。
@@ -35,7 +36,7 @@ pi install git:https://github.com/yinziyang/pi-statusline.git
 |---|---|
 | `~/Project/piagent (main)` | 当前目录与 git 分支；太长时从开头省略，保留项目名与分支 |
 | `LSP gopls ✓` | 语言服务器的状态，来自 [pi-lsp](https://github.com/yinziyang/pi-lsp)，颜色由 pi-lsp 决定：运行中绿色 `✓`，启动中黄色 `…`，出错红色 `✗`；还没有服务器在运行时是 `LSP idle` |
-| `MCP 0/1` | MCP 服务的已连接数/已启用数，来自 [pi-mcp-adapter](https://www.npmjs.com/package/pi-mcp-adapter)；服务按需连接，没用到时是 `0/N`，属正常 |
+| `MCP 1/2` | MCP 服务的已连接数/已启用数，见下面「MCP 的计数」 |
 | `codex 周余 78% · 5d6h 后重置` | codex 订阅额度的剩余百分比与重置倒计时，见下面「codex 额度」 |
 
 底栏：
@@ -84,8 +85,17 @@ pi install git:https://github.com/yinziyang/pi-statusline.git
 
 - pi 同一时间只能有一个扩展替换底栏，装了别的替换底栏的扩展时，后加载的那个生效。
 - [pi-goal](https://github.com/yinziyang/pi-goal) 的状态与 [pi-subagents](https://github.com/yinziyang/pi-subagents) 的面板画在输入框下方，不受影响。
-- pi-mcp-adapter 写入的完整状态文字不再出现在底栏，改成右上角的简写。
 - pi-lsp 写入的状态（键 `zz-pi-lsp`）不再单独占底栏第二行，改到右上角，保留它自己的颜色。
+
+## MCP 的计数
+
+pi 1.1.0 没有给扩展公开 MCP 的连接状态，这一段由本包从 pi 自己的数据推算：
+
+- 已启用数：按 pi 文档的配置规则读 `~/.pi/agent/mcp.json` 与项目的 `.pi/mcp.json`（项目受信任时），再加上扩展用 `pi.registerMcpServer()` 注册的服务，`enabled: false` 的不算。
+- 已连接数：pi 在服务连上之后才注册它的工具，所以工具表里有 `mcp__<服务>` 工具的已启用服务算已连接。
+- pi 在会话开始时就在后台连接全部服务，连上通常要几秒，开头会短暂显示 `0/N`。
+- 稳定后少于 N 说明有服务连接失败或需要登录，用 `/mcp` 查看原因。
+- 连上但一个工具都没有的服务算未连接，连接断开后 pi 会在下次调用时重连，期间仍算已连接。
 
 ## 与 pi 自带底栏的差异
 
@@ -103,5 +113,5 @@ pi install git:https://github.com/yinziyang/pi-statusline.git
 
 - `index.ts`：组合根，装上底栏与输入框上方的一行，管理刷新时机与收尾。
 - `render.ts`：把各段排成行、按宽度省略、上色。
-- `usage.ts`：会话统计、目录显示、MCP 简写。
+- `usage.ts`：会话统计、目录显示、MCP 的已启用服务与简写。
 - `quota.ts`：codex 额度的请求、解析与查询时机。

@@ -89,20 +89,52 @@ export function sanitizeStatus(text: string): string {
 	return text.replace(/[\r\n\t]/g, " ").replace(/ +/g, " ").trim();
 }
 
-// 匹配终端颜色控制序列，解析状态原文前先去掉。
-const ANSI = /\x1b\[[0-9;]*m/g;
+type JsonObject = Record<string, unknown>;
+
+const isObject = (value: unknown): value is JsonObject => typeof value === "object" && value !== null && !Array.isArray(value);
+
+/** 服务名的归一化写法：pi 把只差 `-` 与 `_` 的名字当成同一个服务，工具命名空间 `mcp__<服务>` 也按这个写法。 */
+function mcpKey(name: string): string {
+	return name.replace(/-/g, "_");
+}
+
+/** mcp.json 内容里的服务条目；结构不对（文件损坏、字段类型不对）时当作没有条目，pi 自己会报告配置错误。 */
+function mcpEntries(config: unknown): Array<[string, JsonObject]> {
+	const servers = isObject(config) ? config.mcpServers : undefined;
+	if (!isObject(servers)) return [];
+	return Object.entries(servers).filter((entry): entry is [string, JsonObject] => isObject(entry[1]));
+}
 
 /**
- * pi-mcp-adapter 状态文字的简写：`MCP 已连接/已启用`。
- * 能识别它的两种原文：完整写法「N server(s) enabled (M connected) (K disabled)」与 compact 写法「MCP M/N」。
- * 认不出时返回整理过的原文，不猜数字。
+ * 按 pi 文档 mcp.md 的配置规则，算出已启用的 MCP 服务，返回归一化后的名字。
+ * - global、project 是两份 mcp.json 解析后的内容，项目文件只在项目受信任时传入。
+ * - 项目条目带 command、url 或 type 时替换同名的全局服务。
+ * - 项目条目不带这些字段时只覆盖同名全局服务的 enabled，没有同名全局服务时不算服务。
+ * - registered 是扩展用 pi.registerMcpServer 注册的服务名，与配置文件同名时以配置文件为准。
+ * - enabled 为 false 的不算。
  */
-export function mcpShort(text: string): string {
-	const plain = sanitizeStatus(text.replace(ANSI, ""));
-	const compact = /\bMCP (\d+)\/(\d+)\b/.exec(plain);
-	if (compact) return `MCP ${compact[1]}/${compact[2]}`;
-	const enabled = /(\d+) servers? enabled/.exec(plain);
-	if (!enabled) return plain;
-	const connected = /\((\d+) connected\)/.exec(plain);
-	return `MCP ${connected ? connected[1] : "0"}/${enabled[1]}`;
+export function enabledMcpServers(global: unknown, project: unknown, registered: readonly string[]): string[] {
+	const servers = new Map<string, JsonObject>();
+	for (const [name, entry] of mcpEntries(global)) servers.set(mcpKey(name), entry);
+	for (const [name, entry] of mcpEntries(project)) {
+		const key = mcpKey(name);
+		const base = servers.get(key);
+		if ("command" in entry || "url" in entry || "type" in entry) servers.set(key, entry);
+		else if (base && "enabled" in entry) servers.set(key, { ...base, enabled: entry.enabled });
+	}
+	for (const name of registered) if (!servers.has(mcpKey(name))) servers.set(mcpKey(name), {});
+	return [...servers].filter(([, entry]) => entry.enabled !== false).map(([key]) => key);
+}
+
+/**
+ * 右上角的 MCP 简写 `MCP 已连接/已启用`，没有启用的服务时返回 undefined，整段不显示。
+ * pi 内置的 MCP 在服务连上之后才注册它的工具，工具的命名空间是 `mcp__<服务>`，所以有工具的服务算已连接。
+ * 简化：连上但一个工具都没有的服务算未连接，断线后工具仍保留时算已连接；pi 公开连接状态的接口后改为直接读状态。
+ * @param namespaces 当前全部工具的命名空间名，没有命名空间的工具传 undefined。
+ */
+export function mcpShort(enabled: readonly string[], namespaces: Iterable<string | undefined>): string | undefined {
+	if (enabled.length === 0) return undefined;
+	const connected = new Set<string>();
+	for (const name of namespaces) if (name?.startsWith("mcp__")) connected.add(name.slice("mcp__".length));
+	return `MCP ${enabled.filter((key) => connected.has(key)).length}/${enabled.length}`;
 }
