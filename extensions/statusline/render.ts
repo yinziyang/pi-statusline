@@ -18,6 +18,8 @@ export interface TopData {
 	/** 已经换成 `~` 开头的目录。 */
 	cwd: string;
 	branch: string | null;
+	/** Fast 扩展写入的紧凑状态，自带主题颜色，未安装时不显示。 */
+	fast?: string;
 	/** MCP 简写，例如 `MCP 0/1`；没配 MCP 时为 undefined。 */
 	mcp?: string;
 	/** pi-lsp 写入的状态，已带它自己的颜色，例如绿色的 `LSP gopls ✓`；没装 pi-lsp 时为 undefined。 */
@@ -51,11 +53,20 @@ const MIN_GAP = 2;
 const MIN_LEFT = 16;
 const PATH_KEEP = 10;
 
+/** 将目录与环境信息排成单行，优先保留 Fast 模式并保证不超过终端列宽。 */
 export function renderTop(d: TopData, width: number, t: ThemeLike): string[] {
 	const branch = d.branch ? ` (${d.branch})` : "";
-	const left = (room: number) => t.fg("dim", shortenPath(d.cwd, room - visibleWidth(branch)) + branch);
-	const minLeft = Math.min(visibleWidth(d.cwd + branch), Math.max(MIN_LEFT, visibleWidth(branch) + PATH_KEEP));
 	const sep = t.fg("borderMuted", " │ ");
+	const fast = d.fast ? sep + d.fast : "";
+	const fastWidth = visibleWidth(fast);
+	const left = (room: number) => {
+		// Fast 涉及额度消耗，窄屏时先压缩目录或右侧环境信息，不能优先隐藏模式。
+		if (fast && room <= fastWidth) return truncateToWidth(d.fast ?? "", room, t.fg("dim", "..."));
+		const pathRoom = room - fastWidth;
+		const path = t.fg("dim", shortenPath(d.cwd, pathRoom - visibleWidth(branch)) + branch);
+		return truncateToWidth(path, pathRoom, t.fg("dim", "...")) + fast;
+	};
+	const minLeft = Math.min(visibleWidth(d.cwd + branch) + fastWidth, Math.max(MIN_LEFT, visibleWidth(branch) + PATH_KEEP) + fastWidth);
 	const quota = (withReset: boolean) =>
 		(d.quota ?? []).length
 			? t.fg("dim", "codex ") +

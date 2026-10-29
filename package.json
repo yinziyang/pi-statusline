@@ -1,6 +1,6 @@
 {
   "name": "pi-statusline",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Claude Code–style status line for pi: model, context, token and cost stats, MCP status, and Codex quota.",
   "type": "module",
   "private": true,

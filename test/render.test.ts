@@ -89,6 +89,21 @@ test("pi-lsp 的状态在右上角 MCP 前面，保留它自己的颜色；没�
 	for (const w of [160, 100, 76, 60, 40, 20]) assert.ok(visibleWidth(renderTop(top({ lsp }), w, theme)[0]) <= w);
 });
 
+test("Fast 紧跟目录和分支，同一行显示并保留配色，窄屏先省略环境信息", () => {
+	const fast = theme.fg("warning", "Fast 待确认");
+	const data = top({ fast, lsp: "LSP idle" });
+	const wide = renderTop(data, 120, theme);
+	assert.equal(wide.length, 1);
+	assert.ok(plain(wide)[0].startsWith("~/Project/piagent (main) │ Fast 待确认"), plain(wide)[0]);
+	assert.equal(colorOf(wide[0], "Fast 待确认"), "warning");
+	for (const width of [120, 80, 60, 34, 20, 8, 1, 0]) {
+		const lines = renderTop(data, width, theme);
+		assert.equal(lines.length, 1);
+		assert.ok(visibleWidth(lines[0]) <= width);
+		if (width >= 20) assert.ok(plain(lines)[0].includes("Fast 待确认"), plain(lines)[0]);
+	}
+});
+
 test("没有的信息整段不显示：没配 MCP、非 codex、没有 git 分支、非推理模型、零费用的 API key", () => {
 	assert.equal(plain(renderTop(top({ mcp: undefined, quota: undefined, branch: null }), 100, theme))[0], "~/Project/piagent");
 	assert.equal(plain(renderTop(top({ mcp: undefined }), 100, theme))[0].includes("│"), false, "只有额度时没有分隔符");

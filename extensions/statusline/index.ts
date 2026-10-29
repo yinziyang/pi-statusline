@@ -22,6 +22,9 @@ const WIDGET_KEY = "pi-statusline";
  */
 const LSP_STATUS_KEY = "zz-pi-lsp";
 
+/** pi-openai-fast 通过标准 setStatus 写入的键，移到目录旁显示，底栏不再重复。 */
+const FAST_STATUS_KEY = "openai-fast-mode";
+
 /** 倒计时的刷新间隔；倒计时精确到分钟，一分钟刷一次就够。 */
 const TICK_MS = 60_000;
 
@@ -36,6 +39,7 @@ const MCP_WATCH_FOR_MS = 30_000;
 /** pi 内置 MCP 扩展的路径；/mcp 命令来自它时才按内置 MCP 统计，被第三方扩展接管或关掉时不显示。 */
 const BUILTIN_MCP_PATH = "builtin:mcp";
 
+/** 安装环境信息行与会话底栏，复用扩展状态并在会话结束时释放资源。 */
 export default function statusline(pi: ExtensionAPI) {
 	let poller: QuotaPoller | undefined;
 	let ticker: ReturnType<typeof setInterval> | undefined;
@@ -89,6 +93,7 @@ export default function statusline(pi: ExtensionAPI) {
 		return {
 			cwd: formatCwd(ctx.sessionManager.getCwd(), process.env.HOME || process.env.USERPROFILE),
 			branch: data.getGitBranch(),
+			fast: sanitizeStatus(data.getExtensionStatuses().get(FAST_STATUS_KEY) ?? "") || undefined,
 			mcp: mcpText(),
 			lsp: lsp || undefined,
 			quota: poller?.current(ctx.model?.provider),
@@ -100,7 +105,7 @@ export default function statusline(pi: ExtensionAPI) {
 		const model = ctx.model;
 		const usage = ctx.getContextUsage();
 		const statuses = [...data.getExtensionStatuses().entries()]
-			.filter(([key]) => key !== LSP_STATUS_KEY)
+			.filter(([key]) => key !== LSP_STATUS_KEY && key !== FAST_STATUS_KEY)
 			.sort(([a], [b]) => a.localeCompare(b))
 			.map(([, text]) => sanitizeStatus(text))
 			.filter(Boolean);
