@@ -9,7 +9,7 @@ const theme = { fg: (_color: string, text: string) => text };
 const tui = { requestRender() {} };
 type Factory = (ui: typeof tui, palette: typeof theme, data: ReadonlyFooterDataProvider) => Component;
 
-test("Fast 标准状态实时进入目录行，不在底栏重复，其他扩展不受影响", async (t) => {
+test("暂停 Fast 显示，目录行和底栏均隐藏状态，其他扩展不受影响", async (t) => {
   t.mock.method(SettingsManager, "create", () => ({ getCompactionEnabled: () => true }));
   const handlers = new Map<string, (event: unknown, ctx: ExtensionContext) => unknown>();
   const statuses = new Map([["openai-fast-mode", "Fast 关"], ["other", "/goal active"]]);
@@ -46,12 +46,14 @@ test("Fast 标准状态实时进入目录行，不在底栏重复，其他扩展
     const top = widgets.get("pi-statusline");
     assert.ok(top);
     assert.ok(footer);
-    assert.deepEqual(top.render(100), ["/project │ Fast 关"]);
+    assert.deepEqual(top.render(100), ["/project"]);
     const bottom = footer.render(100).join("\n");
     assert.equal(bottom.includes("Fast"), false);
     assert.ok(bottom.includes("/goal active"));
     statuses.set("openai-fast-mode", "Fast 开");
-    assert.deepEqual(top.render(100), ["/project │ Fast 开"]);
+    assert.deepEqual(top.render(100), ["/project"]);
+    assert.deepEqual(top.render(34), ["/project"]);
+    assert.equal(footer.render(100).join("\n").includes("Fast"), false);
     statuses.delete("openai-fast-mode");
     assert.deepEqual(top.render(100), ["/project"]);
   } finally {

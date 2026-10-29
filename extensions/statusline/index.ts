@@ -22,7 +22,7 @@ const WIDGET_KEY = "pi-statusline";
  */
 const LSP_STATUS_KEY = "zz-pi-lsp";
 
-/** pi-openai-fast 通过标准 setStatus 写入的键，移到目录旁显示，底栏不再重复。 */
+/** 暂停 Fast 显示时仍过滤旧扩展的状态键，避免它改为出现在底栏。 */
 const FAST_STATUS_KEY = "openai-fast-mode";
 
 /** 倒计时的刷新间隔；倒计时精确到分钟，一分钟刷一次就够。 */
@@ -93,7 +93,8 @@ export default function statusline(pi: ExtensionAPI) {
 		return {
 			cwd: formatCwd(ctx.sessionManager.getCwd(), process.env.HOME || process.env.USERPROFILE),
 			branch: data.getGitBranch(),
-			fast: sanitizeStatus(data.getExtensionStatuses().get(FAST_STATUS_KEY) ?? "") || undefined,
+			// 还未找到能正确开启并验证fast开启的方法。
+			// fast: sanitizeStatus(data.getExtensionStatuses().get(FAST_STATUS_KEY) ?? "") || undefined,
 			mcp: mcpText(),
 			lsp: lsp || undefined,
 			quota: poller?.current(ctx.model?.provider),

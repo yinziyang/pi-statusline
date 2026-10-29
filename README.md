@@ -4,7 +4,7 @@
 各段含义见下表，未提供的数据不显示。
 
 ```
-~/Project/piagent (main) │ Fast 关          LSP gopls ✓ │ MCP 1/1 │ codex 周余 78% · 5d6h 后重置
+~/Project/piagent (main)                    LSP gopls ✓ │ MCP 1/1 │ codex 周余 78% · 5d6h 后重置
 ──────────────────────────────────────────────────────────────────────────────────────────────
   输入框
 ──────────────────────────────────────────────────────────────────────────────────────────────
@@ -24,7 +24,7 @@ pi install git:https://github.com/yinziyang/pi-statusline.git
 - MCP 那一段读 pi 内置 MCP 的配置与已连上的服务，不需要装 pi-mcp-adapter。
   - 没有启用的服务、用 `--no-mcp` 关掉、或者被第三方 MCP 扩展接管时不显示，其余照常。
 - LSP 那一段需要装 [pi-lsp](https://github.com/yinziyang/pi-lsp)，没装时不显示，其余照常。
-- Fast 那一段需要新版 [pi-openai-fast](https://wisgit.qihoo.net/wd/pi-openai-fast)，没装时不显示，不单独占行。
+- Fast 显示暂时停用，还未找到能正确开启并验证fast开启的方法。
 - 更新到最新提交：`pi update --extensions`。
 - 只对当前项目生效：加 `-l`，写入项目的 `.pi/settings.json`。
 - 临时试用、不写入设置：`pi -e git:https://github.com/yinziyang/pi-statusline.git`。
@@ -37,7 +37,6 @@ pi install git:https://github.com/yinziyang/pi-statusline.git
 | 段 | 含义 |
 |---|---|
 | `~/Project/piagent (main)` | 当前目录与 git 分支，过长时从开头省略。 |
-| `Fast 关` | Fast 模式的紧凑状态，紧跟目录和分支，含义由 pi-openai-fast 决定。 |
 | `LSP gopls ✓` | 语言服务器状态，沿用 [pi-lsp](https://github.com/yinziyang/pi-lsp) 的内容和配色。 |
 | `MCP 1/2` | MCP 服务的已连接数/已启用数，见下面「MCP 的计数」 |
 | `codex 周余 78% · 5d6h 后重置` | codex 订阅额度的剩余百分比与重置倒计时，见下面「codex 额度」 |
@@ -97,15 +96,14 @@ pi install git:https://github.com/yinziyang/pi-statusline.git
 
 - 底栏先省略费用，再省略 token 统计，再省略思考等级，仍放不下时截断。
 - 输入框上方先从开头省略目录，再省略「后重置」三个字，再省略 LSP，再省略 MCP。
-- Fast 涉及额度消耗，目录旁的模式优先保留，极窄时才截断。
 
 ## 与其他扩展的关系
 
 - pi 同一时间只能有一个扩展替换底栏，装了别的替换底栏的扩展时，后加载的那个生效。
 - [pi-goal](https://github.com/yinziyang/pi-goal) 的状态与 [pi-subagents](https://github.com/yinziyang/pi-subagents) 的面板画在输入框下方，不受影响。
 - pi-lsp 写入的状态（键 `zz-pi-lsp`）不再单独占底栏第二行，改到右上角，保留它自己的颜色。
-- pi-openai-fast 通过 `setStatus` 写入 `openai-fast-mode`，本包只将其放到目录旁，保留其主题颜色，不在底栏重复。
-- Fast 的开关、最终档位确认和计费风险提示由 pi-openai-fast 负责，本包不修改请求或判断计费。
+- Fast 显示入口已注释，仍过滤旧的 `openai-fast-mode` 状态键，避免底栏出现残留状态。
+- 本包不修改模型请求或判断 Fast 计费。
 
 ## MCP 的计数
 
